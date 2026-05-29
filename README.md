@@ -1,6 +1,6 @@
 # Cost Guardrails GitHub Action
 
-![Cost Guardrails](https://img.shields.io/badge/Cost Guardrails-shift--left%20cost%20governance-brightgreen)
+![Cost Guardrails](https://img.shields.io/badge/Cost%20Guardrails-shift--left%20cost%20governance-brightgreen)
 ![GitHub Action](https://img.shields.io/badge/GitHub%20Action-composite-blue)
 ![Version](https://img.shields.io/badge/version-v1-blue)
 

@@ -6,12 +6,12 @@
 #           single AWS account using OIDC (no long-lived keys).
 #
 # Pipeline:
-#   On PR:    checkout → terraform plan → CostGuard cost review
+#   On PR:    checkout → terraform plan → Cost Guardrails cost review
 #   On merge: checkout → terraform plan → terraform apply
 #
 # Secrets needed:
-#   COSTGUARD_API_KEY     — CostGuard API key
-#   COSTGUARD_BUDGET_CODE — Budget code from CostGuard dashboard
+#   COST_GUARDRAILS_API_KEY     — Cost Guardrails API key
+#   COST_GUARDRAILS_BUDGET_CODE — Budget code from Cost Guardrails dashboard
 #   AWS_ROLE_ARN          — IAM role for OIDC (arn:aws:iam::role/...)
 
 name: "Infrastructure: Plan, Review & Deploy"
@@ -73,7 +73,7 @@ jobs:
           retention-days: 5
 
   cost-review:
-    name: "CostGuard: Cost Review"
+    name: "Cost Guardrails: Cost Review"
     needs: terraform-plan
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -83,12 +83,12 @@ jobs:
         with:
           name: terraform-plan-production
 
-      - name: Run CostGuard
-        uses: skyxops-io/costguard-action@v1
+      - name: Run Cost Guardrails
+        uses: skyxops-io/cost-guardrails-action@v1
         with:
           plan-path: plan.json
-          api-key: ${{ secrets.COSTGUARD_API_KEY }}
-          budget-code: ${{ secrets.COSTGUARD_BUDGET_CODE }}
+          api-key: ${{ secrets.COST_GUARDRAILS_API_KEY }}
+          budget-code: ${{ secrets.COST_GUARDRAILS_BUDGET_CODE }}
 
   deploy:
     name: "Terraform Apply"

@@ -3,16 +3,16 @@
 # ──────────────────────────────────────────────────────────────
 #
 # Scenario: Data engineering team deploys EMR clusters, S3 buckets,
-#           and Glue jobs via CloudFormation. CostGuard reviews the
+#           and Glue jobs via CloudFormation. Cost Guardrails reviews the
 #           change set cost on PR. Stack update executes after merge.
 #
 # Pipeline:
-#   On PR:    checkout → create change set → CostGuard cost review
+#   On PR:    checkout → create change set → Cost Guardrails cost review
 #   On merge: checkout → create change set → execute change set
 #
 # Secrets needed:
-#   COSTGUARD_API_KEY
-#   COSTGUARD_BUDGET_CODE — e.g. CS-FY2026-DATA-ENG-M03
+#   COST_GUARDRAILS_API_KEY
+#   COST_GUARDRAILS_BUDGET_CODE — e.g. CS-FY2026-DATA-ENG-M03
 #   AWS_ROLE_ARN
 
 name: "CloudFormation: Data Pipeline Deploy"
@@ -56,7 +56,7 @@ jobs:
       - name: Create & Describe Change Set
         id: changeset
         run: |
-          CHANGESET_NAME="costguard-review-${{ github.run_id }}"
+          CHANGESET_NAME="cost-guardrails-review-${{ github.run_id }}"
           echo "name=$CHANGESET_NAME" >> $GITHUB_OUTPUT
 
           aws cloudformation create-change-set \
@@ -86,7 +86,7 @@ jobs:
           retention-days: 5
 
   cost-review:
-    name: "CostGuard: Cost Review"
+    name: "Cost Guardrails: Cost Review"
     needs: create-changeset
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -96,12 +96,12 @@ jobs:
         with:
           name: cfn-changeset
 
-      - name: Run CostGuard
-        uses: skyxops-io/costguard-action@v1
+      - name: Run Cost Guardrails
+        uses: skyxops-io/cost-guardrails-action@v1
         with:
           plan-path: changeset.json
-          api-key: ${{ secrets.COSTGUARD_API_KEY }}
-          budget-code: ${{ secrets.COSTGUARD_BUDGET_CODE }}
+          api-key: ${{ secrets.COST_GUARDRAILS_API_KEY }}
+          budget-code: ${{ secrets.COST_GUARDRAILS_BUDGET_CODE }}
 
   deploy:
     name: "Execute Change Set"

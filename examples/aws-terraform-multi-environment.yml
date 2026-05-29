@@ -4,16 +4,16 @@
 #
 # Scenario: Engineering org manages staging + production in separate
 #           AWS accounts. Each environment has its own Terraform root,
-#           budget code, and OIDC role. CostGuard reviews both in
+#           budget code, and OIDC role. Cost Guardrails reviews both in
 #           parallel on PR. Deploy promotes staging → production
 #           after merge.
 #
 # Pipeline:
-#   On PR:    plan (staging + prod matrix) → CostGuard review (matrix)
+#   On PR:    plan (staging + prod matrix) → Cost Guardrails review (matrix)
 #   On merge: plan (staging + prod matrix) → deploy staging → deploy production
 #
 # Secrets needed (per environment):
-#   COSTGUARD_API_KEY
+#   COST_GUARDRAILS_API_KEY
 #   AWS_ROLE_ARN_STAGING / AWS_ROLE_ARN_PRODUCTION
 #   BUDGET_CODE_STAGING / BUDGET_CODE_PRODUCTION
 
@@ -81,7 +81,7 @@ jobs:
           retention-days: 5
 
   cost-review:
-    name: "CostGuard: ${{ matrix.environment }}"
+    name: "Cost Guardrails: ${{ matrix.environment }}"
     needs: terraform-plan
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -98,20 +98,20 @@ jobs:
         with:
           name: plan-${{ matrix.environment }}
 
-      - name: Run CostGuard
-        uses: skyxops-io/costguard-action@v1
-        id: costguard
+      - name: Run Cost Guardrails
+        uses: skyxops-io/cost-guardrails-action@v1
+        id: cost-guardrails
         with:
           plan-path: plan.json
-          api-key: ${{ secrets.COSTGUARD_API_KEY }}
+          api-key: ${{ secrets.COST_GUARDRAILS_API_KEY }}
           budget-code: ${{ secrets[matrix.budget_secret] }}
 
       - name: Summary
         if: always()
         run: |
-          echo "### CostGuard — ${{ matrix.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Decision: **${{ steps.costguard.outputs.decision }}**" >> $GITHUB_STEP_SUMMARY
-          echo "- Monthly Cost: **\$${{ steps.costguard.outputs.monthly-cost }}**" >> $GITHUB_STEP_SUMMARY
+          echo "### Cost Guardrails — ${{ matrix.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Decision: **${{ steps.cost-guardrails.outputs.decision }}**" >> $GITHUB_STEP_SUMMARY
+          echo "- Monthly Cost: **\$${{ steps.cost-guardrails.outputs.monthly-cost }}**" >> $GITHUB_STEP_SUMMARY
 
   deploy-staging:
     name: "Deploy: Staging"

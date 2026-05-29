@@ -1,6 +1,6 @@
-name: 'CostGuard'
+name: 'Cost Guardrails'
 description: 'Shift-left cost governance for Terraform and CloudFormation. Reviews infrastructure costs on every PR.'
-author: 'costguard'
+author: 'cost-guardrails'
 
 branding:
   icon: 'dollar-sign'
@@ -16,7 +16,7 @@ inputs:
     required: false
     default: ''
   api-key:
-    description: 'CostGuard API key'
+    description: 'Cost Guardrails API key'
     required: true
   github-token:
     description: 'GitHub token for posting PR comments'
@@ -47,7 +47,7 @@ inputs:
     required: false
     default: 'true'
   api-url:
-    description: 'CostGuard API URL (override for custom deployments)'
+    description: 'Cost Guardrails API URL (override for custom deployments)'
     required: false
     default: 'https://4tm9xj5nv0.execute-api.us-east-1.amazonaws.com/rnd'
   tag:
@@ -61,31 +61,31 @@ inputs:
 
 outputs:
   decision:
-    description: 'CostGuard decision: ALLOW, WARN, or BLOCK'
-    value: ${{ steps.costguard.outputs.decision }}
+    description: 'Cost Guardrails decision: ALLOW, WARN, or BLOCK'
+    value: ${{ steps.cost-guardrails.outputs.decision }}
   monthly-cost:
     description: 'Estimated monthly cost'
-    value: ${{ steps.costguard.outputs.monthly_cost }}
+    value: ${{ steps.cost-guardrails.outputs.monthly_cost }}
   result-file:
     description: 'Path to the cached result JSON'
-    value: ${{ steps.costguard.outputs.result_file }}
+    value: ${{ steps.cost-guardrails.outputs.result_file }}
   report-file:
     description: 'Path to the HTML report'
-    value: ${{ steps.costguard.outputs.report_file }}
+    value: ${{ steps.cost-guardrails.outputs.report_file }}
 
 runs:
   using: 'composite'
   steps:
-    - name: Install CostGuard CLI
+    - name: Install Cost Guardrails CLI
       shell: bash
-      run: pip install --quiet costguard-cli
+      run: pip install --quiet cost-guardrails
 
-    - name: Run CostGuard
-      id: costguard
+    - name: Run Cost Guardrails
+      id: cost-guardrails
       shell: bash
       env:
-        COSTGUARD_API_KEY: ${{ inputs.api-key }}
-        COSTGUARD_API_URL: ${{ inputs.api-url }}
+        COST_GUARDRAILS_API_KEY: ${{ inputs.api-key }}
+        COST_GUARDRAILS_API_URL: ${{ inputs.api-url }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
         # Build CLI flags
@@ -102,13 +102,13 @@ runs:
           BUDGET_FLAG="--budget-code ${{ inputs.budget-code }}"
         fi
 
-        # Run CostGuard — validate cost, post PR comment, cache result
+        # Run Cost Guardrails — validate cost, post PR comment, cache result
         EXIT_CODE=0
-        costguard-validate \
+        cost-guardrails \
           --plan "${{ inputs.plan-path }}" \
           $BUDGET_FLAG \
           --format "${{ inputs.format }}" \
-          --cache-path costguard-result.json \
+          --cache-path cost-guardrails-result.json \
           $OPTS ${{ inputs.extra-args }} || EXIT_CODE=$?
 
         # Parse decision from exit code
@@ -120,11 +120,11 @@ runs:
 
         # Parse monthly cost from cached result
         MONTHLY_COST=""
-        if [ -f costguard-result.json ]; then
+        if [ -f cost-guardrails-result.json ]; then
           MONTHLY_COST=$(python3 -c "
         import json
         try:
-            d = json.load(open('costguard-result.json'))
+            d = json.load(open('cost-guardrails-result.json'))
             print(d.get('total_monthly_cost', d.get('pricing', {}).get('total_monthly_cost', 'N/A')))
         except: print('N/A')
         " 2>/dev/null || echo "N/A")
@@ -133,30 +133,30 @@ runs:
         # Set outputs
         echo "decision=$DECISION" >> $GITHUB_OUTPUT
         echo "monthly_cost=$MONTHLY_COST" >> $GITHUB_OUTPUT
-        echo "result_file=costguard-result.json" >> $GITHUB_OUTPUT
-        echo "report_file=costguard-report.html" >> $GITHUB_OUTPUT
+        echo "result_file=cost-guardrails-result.json" >> $GITHUB_OUTPUT
+        echo "report_file=cost-guardrails-report.html" >> $GITHUB_OUTPUT
 
         # Generate HTML report from cache
-        if [ -f costguard-result.json ]; then
-          costguard-validate \
-            --cached costguard-result.json \
+        if [ -f cost-guardrails-result.json ]; then
+          cost-guardrails \
+            --cached cost-guardrails-result.json \
             --format html \
-            --output-file costguard-report.html 2>/dev/null || true
+            --output-file cost-guardrails-report.html 2>/dev/null || true
         fi
 
         # Exit with original code (WARN=2 is still success for GitHub)
         if [ $EXIT_CODE -eq 2 ]; then
-          echo "::warning::CostGuard decision: WARN — review recommended"
+          echo "::warning::Cost Guardrails decision: WARN — review recommended"
           exit 0
         fi
         exit $EXIT_CODE
 
-    - name: Upload CostGuard Report
+    - name: Upload Cost Guardrails Report
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: costguard-report
+        name: cost-guardrails-report
         path: |
-          costguard-result.json
-          costguard-report.html
+          cost-guardrails-result.json
+          cost-guardrails-report.html
         if-no-files-found: ignore

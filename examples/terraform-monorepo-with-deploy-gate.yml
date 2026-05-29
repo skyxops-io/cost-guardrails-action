@@ -3,23 +3,23 @@
 # ──────────────────────────────────────────────────────────────
 #
 # Scenario: Platform engineering team manages networking, compute,
-#           and database modules in a monorepo. CostGuard gates
+#           and database modules in a monorepo. Cost Guardrails gates
 #           the merge with a cost/budget review. Deploy requires
 #           manual approval via GitHub Environment.
 #
 # Pipeline:
-#   On PR:    plan → CostGuard cost review → Slack notification
+#   On PR:    plan → Cost Guardrails cost review → Slack notification
 #   On merge: plan → manual approval → deploy
 #
 # Features:
 #   - Path-based triggers (only runs when relevant module changes)
-#   - CostGuard blocks merge when budget is exceeded (via branch protection)
+#   - Cost Guardrails blocks merge when budget is exceeded (via branch protection)
 #   - GitHub Environment with required reviewers for production deploy
 #   - Job summary and optional Slack notification on cost review
 #
 # Secrets needed:
-#   COSTGUARD_API_KEY
-#   COSTGUARD_BUDGET_CODE
+#   COST_GUARDRAILS_API_KEY
+#   COST_GUARDRAILS_BUDGET_CODE
 #   AWS_ROLE_ARN
 #   SLACK_WEBHOOK_URL (optional)
 
@@ -81,7 +81,7 @@ jobs:
           retention-days: 5
 
   cost-review:
-    name: "CostGuard: Cost & Budget Review"
+    name: "Cost Guardrails: Cost & Budget Review"
     needs: terraform-plan
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -91,23 +91,23 @@ jobs:
         with:
           name: terraform-plan
 
-      - name: Run CostGuard
-        id: costguard
-        uses: skyxops-io/costguard-action@v1
+      - name: Run Cost Guardrails
+        id: cost-guardrails
+        uses: skyxops-io/cost-guardrails-action@v1
         with:
           plan-path: plan.json
-          api-key: ${{ secrets.COSTGUARD_API_KEY }}
-          budget-code: ${{ secrets.COSTGUARD_BUDGET_CODE }}
+          api-key: ${{ secrets.COST_GUARDRAILS_API_KEY }}
+          budget-code: ${{ secrets.COST_GUARDRAILS_BUDGET_CODE }}
 
       - name: Write Job Summary
         if: always()
         run: |
-          echo "## CostGuard Review" >> $GITHUB_STEP_SUMMARY
+          echo "## Cost Guardrails Review" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Decision | **${{ steps.costguard.outputs.decision }}** |" >> $GITHUB_STEP_SUMMARY
-          echo "| Monthly Cost | **\$${{ steps.costguard.outputs.monthly-cost }}** |" >> $GITHUB_STEP_SUMMARY
+          echo "| Decision | **${{ steps.cost-guardrails.outputs.decision }}** |" >> $GITHUB_STEP_SUMMARY
+          echo "| Monthly Cost | **\$${{ steps.cost-guardrails.outputs.monthly-cost }}** |" >> $GITHUB_STEP_SUMMARY
           echo "| PR | #${{ github.event.pull_request.number }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Author | @${{ github.event.pull_request.user.login }} |" >> $GITHUB_STEP_SUMMARY
 
@@ -119,7 +119,7 @@ jobs:
           curl -s -X POST "$SLACK_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             --data "{
-              \"text\": \"CostGuard: *${{ steps.costguard.outputs.decision }}* — \$${{ steps.costguard.outputs.monthly-cost }}/mo for PR #${{ github.event.pull_request.number }} by ${{ github.event.pull_request.user.login }}\"
+              \"text\": \"Cost Guardrails: *${{ steps.cost-guardrails.outputs.decision }}* — \$${{ steps.cost-guardrails.outputs.monthly-cost }}/mo for PR #${{ github.event.pull_request.number }} by ${{ github.event.pull_request.user.login }}\"
             }"
 
   deploy:

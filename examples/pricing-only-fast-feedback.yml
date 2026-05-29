@@ -11,7 +11,7 @@
 # Features:
 #   - Skip budget, narrative, and guardrails for fastest response
 #   - Non-blocking — always passes, just provides cost visibility
-#   - Minimal secrets — only COSTGUARD_API_KEY needed
+#   - Minimal secrets — only COST_GUARDRAILS_API_KEY needed
 
 name: "Cost Estimate: Quick Pricing"
 
@@ -58,7 +58,7 @@ jobs:
           path: terraform/plan.json
 
   cost-estimate:
-    name: "CostGuard: Pricing Estimate"
+    name: "Cost Guardrails: Pricing Estimate"
     needs: terraform-plan
     runs-on: ubuntu-latest
     steps:
@@ -67,11 +67,11 @@ jobs:
         with:
           name: terraform-plan
 
-      - name: Run CostGuard (pricing only)
-        uses: skyxops-io/costguard-action@v1
+      - name: Run Cost Guardrails (pricing only)
+        uses: skyxops-io/cost-guardrails-action@v1
         with:
           plan-path: plan.json
-          api-key: ${{ secrets.COSTGUARD_API_KEY }}
+          api-key: ${{ secrets.COST_GUARDRAILS_API_KEY }}
           skip-budget: "true"
           skip-narrative: "true"
           skip-guardrails: "true"

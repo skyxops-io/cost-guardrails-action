@@ -1,14 +1,14 @@
-# CostGuard GitHub Action
+# Cost Guardrails GitHub Action
 
-![CostGuard](https://img.shields.io/badge/CostGuard-shift--left%20cost%20governance-brightgreen)
+![Cost Guardrails](https://img.shields.io/badge/Cost Guardrails-shift--left%20cost%20governance-brightgreen)
 ![GitHub Action](https://img.shields.io/badge/GitHub%20Action-composite-blue)
 ![Version](https://img.shields.io/badge/version-v1-blue)
 
 > Know your infrastructure costs **before** you merge.
 
-CostGuard reviews every PR for cost impact. It works with both **Terraform** (`plan.json`) and **CloudFormation** (`changeset.json`) — auto-detected, no extra config.
+Cost Guardrails reviews every PR for cost impact. It works with both **Terraform** (`plan.json`) and **CloudFormation** (`changeset.json`) — auto-detected, no extra config.
 
-On every PR push, CostGuard:
+On every PR push, Cost Guardrails:
 - Posts a **cost breakdown** as a PR comment (per-resource, with regions)
 - Returns a **decision** — ALLOW, WARN, or BLOCK — that gates your merge
 - Validates against your **budget** and **guardrails**
@@ -25,19 +25,19 @@ Go to **Settings → Secrets and variables → Actions** and add:
 
 | Secret | Description |
 |--------|-------------|
-| `COSTGUARD_API_KEY` | Your CostGuard API key |
-| `COSTGUARD_BUDGET_CODE` | Your budget code from CostGuard dashboard (e.g. `CS-FY2026-BU105-M03`). Optional — omit to skip budget validation |
+| `COST_GUARDRAILS_API_KEY` | Your Cost Guardrails API key |
+| `COST_GUARDRAILS_BUDGET_CODE` | Your budget code from Cost Guardrails dashboard (e.g. `CS-FY2026-BU105-M03`). Optional — omit to skip budget validation |
 
 > `GITHUB_TOKEN` is provided automatically — no setup needed.
 
 ### 2. Create workflow
 
-> **Important:** The `permissions:` block with `pull-requests: write` is required for CostGuard to post PR comments. Without it, the default `GITHUB_TOKEN` has read-only access and comment posting will fail with a 403 error.
+> **Important:** The `permissions:` block with `pull-requests: write` is required for Cost Guardrails to post PR comments. Without it, the default `GITHUB_TOKEN` has read-only access and comment posting will fail with a 403 error.
 
-**Terraform** — `.github/workflows/costguard.yml`:
+**Terraform** — `.github/workflows/cost-guardrails.yml`:
 
 ```yaml
-name: CostGuard
+name: Cost Guardrails
 on:
   pull_request:
     branches: [main]
@@ -73,16 +73,16 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: plan
-      - uses: skyxops-io/costguard-action@v1
+      - uses: skyxops-io/cost-guardrails-action@v1
         with:
           plan-path: plan.json
-          api-key: ${{ secrets.COSTGUARD_API_KEY }}
-          budget-code: ${{ secrets.COSTGUARD_BUDGET_CODE }}
+          api-key: ${{ secrets.COST_GUARDRAILS_API_KEY }}
+          budget-code: ${{ secrets.COST_GUARDRAILS_BUDGET_CODE }}
 ```
 
 The action automatically:
 - Posts a cost breakdown as a **PR comment**
-- Uploads **`costguard-result.json`** (full analysis) and **`costguard-report.html`** (executive report) as **workflow artifacts**
+- Uploads **`cost-guardrails-result.json`** (full analysis) and **`cost-guardrails-report.html`** (executive report) as **workflow artifacts**
 - You can download the HTML report from the workflow's **Artifacts** section
 
 **CloudFormation** — If your pipeline already generates `changeset.json`, just add the cost-review job:
@@ -95,11 +95,11 @@ The action automatically:
       - uses: actions/download-artifact@v4
         with:
           name: changeset
-      - uses: skyxops-io/costguard-action@v1
+      - uses: skyxops-io/cost-guardrails-action@v1
         with:
           plan-path: changeset.json
-          api-key: ${{ secrets.COSTGUARD_API_KEY }}
-          budget-code: ${{ secrets.COSTGUARD_BUDGET_CODE }}
+          api-key: ${{ secrets.COST_GUARDRAILS_API_KEY }}
+          budget-code: ${{ secrets.COST_GUARDRAILS_BUDGET_CODE }}
 ```
 
 > Generate `changeset.json` with: `aws cloudformation describe-change-set --change-set-name <arn> > changeset.json`
@@ -114,7 +114,7 @@ The action automatically:
 | Required checks | `cost-review` |
 | Require PR before merging | Yes |
 
-**That's it.** Push a PR and CostGuard will post a cost review comment.
+**That's it.** Push a PR and Cost Guardrails will post a cost review comment.
 
 ---
 
@@ -127,10 +127,10 @@ Developer opens PR
   │     Terraform:      terraform show -json tfplan > plan.json
   │     CloudFormation: aws cloudformation describe-change-set > changeset.json
   │
-  └─ CostGuard action
+  └─ Cost Guardrails action
        │
        ├─ Reads plan.json or changeset.json (auto-detected)
-       ├─ Sends to CostGuard API for pricing + budget + guardrails + AI analysis
+       ├─ Sends to Cost Guardrails API for pricing + budget + guardrails + AI analysis
        ├─ Posts PR comment with cost breakdown
        ├─ Saves HTML report as workflow artifact
        │
@@ -140,13 +140,13 @@ Developer opens PR
             2 → WARN   → job passes → review recommended (GitHub warning annotation)
 ```
 
-CostGuard posts **one comment per PR** and updates it on every push. No duplicate comments.
+Cost Guardrails posts **one comment per PR** and updates it on every push. No duplicate comments.
 
 ---
 
 ## What You'll See
 
-On every PR, CostGuard posts a comment with:
+On every PR, Cost Guardrails posts a comment with:
 - **Decision badge** — ALLOW (green), WARN (yellow), or BLOCK (red)
 - **Total monthly cost** — estimated infrastructure spend
 - **Per-resource breakdown** — cost per resource with region and pricing details
@@ -159,19 +159,19 @@ The comment updates automatically on each push — no duplicates.
 
 ## Budget Codes
 
-A budget code connects your deployment to a spending limit you've set up in SKYXOPS. CostGuard checks if the new infrastructure cost fits within that budget before allowing the merge.
+A budget code connects your deployment to a spending limit you've set up in SKYXOPS. Cost Guardrails checks if the new infrastructure cost fits within that budget before allowing the merge.
 
 ### Setup
 
 1. Go to [app.skyxops.io](https://app.skyxops.io) → **Budgets**
 2. Create or select a budget for your team/project
 3. Copy the **budget code**
-4. Add it as a repository secret: `COSTGUARD_BUDGET_CODE`
+4. Add it as a repository secret: `COST_GUARDRAILS_BUDGET_CODE`
 
 ### What happens
 
 ```
-PR opened → CostGuard checks cost against your budget
+PR opened → Cost Guardrails checks cost against your budget
                 │
                 ├─ Within budget     → ALLOW  (pipeline passes)
                 ├─ Near the limit    → WARN   (pipeline passes, review recommended)
@@ -182,7 +182,7 @@ Your PR comment will show the budget name, how much has been used, and how much 
 
 ### No budget? No problem
 
-You can use CostGuard without a budget code — just set `skip-budget: "true"` to get cost visibility without enforcement. Great for early-stage projects or sandbox environments.
+You can use Cost Guardrails without a budget code — just set `skip-budget: "true"` to get cost visibility without enforcement. Great for early-stage projects or sandbox environments.
 
 ---
 
@@ -193,7 +193,7 @@ You can use CostGuard without a budget code — just set `skip-budget: "true"` t
 | **Terraform** | `plan.json` | `terraform show -json tfplan > plan.json` |
 | **CloudFormation Changeset** | `changeset.json` | `aws cloudformation describe-change-set > changeset.json` |
 
-CostGuard auto-detects the type from file content.
+Cost Guardrails auto-detects the type from file content.
 
 ---
 
@@ -202,7 +202,7 @@ CostGuard auto-detects the type from file content.
 | Input | Required | Default | Description |
 |-------|:--------:|---------|-------------|
 | `plan-path` | No | `plan.json` | Path to plan or changeset file |
-| `api-key` | **Yes** | | CostGuard API key |
+| `api-key` | **Yes** | | Cost Guardrails API key |
 | `budget-code` | No | `""` | Budget code for cost validation |
 | `github-token` | No | `${{ github.token }}` | Token for PR comments (auto-provided) |
 | `skip-budget` | No | `false` | Skip budget check (pricing-only mode) |
@@ -211,7 +211,7 @@ CostGuard auto-detects the type from file content.
 | `auto-approve` | No | `false` | Pass when no budget found |
 | `format` | No | `markdown` | Comment format: `markdown` or `terminal` |
 | `post-comment` | No | `true` | Post cost breakdown as PR comment |
-| `api-url` | No | `https://api.costguard.dev` | CostGuard API URL (for custom deployments) |
+| `api-url` | No | `https://api.cost-guardrails.dev` | Cost Guardrails API URL (for custom deployments) |
 | `extra-args` | No | `""` | Extra CLI flags (escape hatch) |
 
 ## Outputs
@@ -226,14 +226,14 @@ CostGuard auto-detects the type from file content.
 Use outputs in subsequent steps:
 
 ```yaml
-- uses: skyxops-io/costguard-action@v1
-  id: costguard
+- uses: skyxops-io/cost-guardrails-action@v1
+  id: cost-guardrails
   with:
     plan-path: plan.json
-    api-key: ${{ secrets.COSTGUARD_API_KEY }}
+    api-key: ${{ secrets.COST_GUARDRAILS_API_KEY }}
 
-- run: echo "Decision: ${{ steps.costguard.outputs.decision }}"
-- run: echo "Monthly cost: ${{ steps.costguard.outputs.monthly-cost }}"
+- run: echo "Decision: ${{ steps.cost-guardrails.outputs.decision }}"
+- run: echo "Monthly cost: ${{ steps.cost-guardrails.outputs.monthly-cost }}"
 ```
 
 ---
@@ -279,10 +279,10 @@ Production-ready workflows in the [`examples/`](./examples/) folder:
 
 ```yaml
 # Recommended
-- uses: skyxops-io/costguard-action@v1
+- uses: skyxops-io/cost-guardrails-action@v1
 
 # Pinned to exact commit (most stable)
-- uses: skyxops-io/costguard-action@abc1234
+- uses: skyxops-io/cost-guardrails-action@abc1234
 ```
 
 ---
